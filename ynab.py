@@ -12,31 +12,25 @@ def process_csv(in_filename):
         with open(in_filename) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
+            header_line = 9999999   # large int
 
             for row in csv_reader:
-                match line_count:
-                    case 0:
-                        if row[0] == "Card No":
-                            is_cc = True
-                        
-                        if is_cc:
-                            out_filename = "YNAB_CC_" + row[1][-4:] + ".csv"
-                        else:
-                            out_filename = "YNAB_" + row[0] + ".csv"
-                    case 1:
-                        pass
-                    case 2:
-                        pass
-                    case 3:
-                        pass
-                    case 4:
-                        if is_cc:
-                            pass
-                        else:
-                            trans_date = datetime.strptime(row[0], '%d %b %Y')
-                            trans_date_string = trans_date.strftime('%m/%d/%Y')
-                            ynab_csv.append([trans_date_string, row[2].strip(), row[2].strip(), row[3], row[4]])                                    
-                    case _:
+                
+                if len(row) == 0:
+                    line_count += 1
+                    continue        # skip blank row
+
+                if line_count == 0:
+                    if row[0] == "Card No":
+                        is_cc = True
+                        out_filename = "YNAB_CC_" + row[1][-4:] + ".csv"
+                    else:
+                        out_filename = "YNAB_" + row[0] + ".csv"
+
+                if row[0] == "Reference No" or row[0] == "Transaction Date":
+                    header_line = line_count
+
+                if line_count > header_line:
                         if is_cc:
                             trans_date = datetime.strptime(row[1], '%d %b %Y')
                             trans_date_string = trans_date.strftime('%m/%d/%Y')
@@ -54,8 +48,8 @@ def process_csv(in_filename):
                         else:                        
                             trans_date = datetime.strptime(row[0], '%d %b %Y')
                             trans_date_string = trans_date.strftime('%m/%d/%Y')
-                            ynab_csv.append([trans_date_string, row[2].strip(), row[2].strip(), row[3], row[4]])
-                
+                            ynab_csv.append([trans_date_string, row[2].strip(), row[2].strip(), row[3], row[4]])                    
+
                 line_count += 1
 
     except:
@@ -75,6 +69,6 @@ file_count = 0
 for file in os.listdir():
     if file.endswith('.csv') and not file.startswith('YNAB_'):
         process_csv(file)
-        file_count =+ 1
+        file_count += 1
 
-print(f'{file_count} files processed.')
+print(f'{file_count} file(s) processed.')

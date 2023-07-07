@@ -1,6 +1,16 @@
 import os
 import csv
 from datetime import datetime
+import tkinter as tk
+from tkinter import filedialog
+import re
+import argparse
+
+def replace_multiple_spaces(string):
+    # Use regular expression to replace multiple spaces with a single space
+    pattern = re.compile(r'\s+')
+    replaced_string = re.sub(pattern, ' ', string)
+    return replaced_string
 
 def process_csv(in_filename):
 
@@ -9,6 +19,7 @@ def process_csv(in_filename):
     ynab_csv.append(["Date", "Payee", "Memo", "Outflow", "Inflow"])
 
     try:
+        in_folder = os.path.dirname(in_filename)
         with open(in_filename) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
@@ -23,9 +34,9 @@ def process_csv(in_filename):
                 if line_count == 0:
                     if row[0] == "Card No":
                         is_cc = True
-                        out_filename = "YNAB_CC_" + row[1][-4:] + ".csv"
+                        out_filename = os.path.join(in_folder, "YNAB_CC_" + row[1][-4:] + ".csv")
                     else:
-                        out_filename = "YNAB_" + row[0] + ".csv"
+                        out_filename = os.path.join(in_folder, "YNAB_" + row[0] + ".csv")
 
                 if row[0] == "Reference No" or row[0] == "Transaction Date":
                     header_line = line_count
@@ -43,12 +54,15 @@ def process_csv(in_filename):
                             else:
                                 inflow = row[4]
                             
-                            ynab_csv.append([trans_date_string, row[2].strip(), row[2].strip(), outflow, inflow])
+                            description = replace_multiple_spaces(row[2]).strip()
+
+                            ynab_csv.append([trans_date_string, description, description, outflow, inflow])
 
                         else:                        
                             trans_date = datetime.strptime(row[0], '%d %b %Y')
                             trans_date_string = trans_date.strftime('%m/%d/%Y')
-                            ynab_csv.append([trans_date_string, row[2].strip(), row[2].strip(), row[3], row[4]])                    
+                            description = replace_multiple_spaces(row[2]).strip()
+                            ynab_csv.append([trans_date_string, description, description, row[3], row[4]])                    
 
                 line_count += 1
 
@@ -64,11 +78,51 @@ def process_csv(in_filename):
     except:
         print(f'Error writing file {out_filename}')
 
-file_count = 0
+def process_csv_files_select():
+    root = tk.Tk()
+    root.withdraw()
 
-for file in os.listdir():
-    if file.endswith('.csv') and not file.startswith('YNAB_'):
-        process_csv(file)
-        file_count += 1
+    # Prompt the user to select multiple CSV files
+    csv_files = filedialog.askopenfilenames(
+        initialdir='/', title='Select CSV files',
+        filetypes=(('CSV files', '*.csv'), ('All files', '*.*'))
+    )
 
-print(f'{file_count} file(s) processed.')
+    if not csv_files:
+        print("No CSV files selected.")
+        return
+
+    print(f"Fixing {len(csv_files)} CSV file(s)...")
+
+    for csv_file in csv_files:
+        process_csv(csv_file)
+
+def process_csv_files():
+    file_count = 0
+
+    for file in os.listdir():
+        if file.endswith('.csv') and not file.startswith('YNAB_'):
+            process_csv(file)
+            file_count += 1
+
+    print(f'{file_count} file(s) processed.')
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', action='store_true', help='Run with interactive multiple file select option')
+    args = parser.parse_args()
+
+    if args.s:
+        print("Interactive mode - user must select CSV files to process.")
+        process_csv_files_select()
+    else:
+        print("Regular mode - all CSV files in current folder will be processed.")
+        process_csv_files()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+

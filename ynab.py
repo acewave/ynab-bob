@@ -13,6 +13,9 @@ def replace_multiple_spaces(string):
     return replaced_string
 
 def process_csv(in_filename):
+    trans_date = None
+    trans_date_min = datetime.max
+    trans_date_max = datetime.min
 
     is_cc = False   # is credit card CSV
     ynab_csv = []
@@ -34,9 +37,9 @@ def process_csv(in_filename):
                 if line_count == 0:
                     if row[0] == "Card No":
                         is_cc = True
-                        out_filename = os.path.join(in_folder, "YNAB_CC_" + row[1][-4:] + ".csv")
+                        filename_suffix = "YNAB_CC_" + row[1][-4:]
                     else:
-                        out_filename = os.path.join(in_folder, "YNAB_" + row[0] + ".csv")
+                        filename_suffix = "YNAB_" + row[0]
 
                 if row[0] == "Reference No" or row[0] == "Transaction Date":
                     header_line = line_count
@@ -64,12 +67,23 @@ def process_csv(in_filename):
                             description = replace_multiple_spaces(row[2]).strip()
                             ynab_csv.append([trans_date_string, description, description, row[3], row[4]])                    
 
+                if trans_date is not None and trans_date < trans_date_min:
+                    trans_date_min = trans_date
+
+                if trans_date is not None and trans_date > trans_date_max:
+                    trans_date_max = trans_date
+
                 line_count += 1
 
     except:
         print(f'Error reading file {in_filename}')
 
     try:
+        trans_date_min_string = trans_date_min.strftime('%Y%m%d')
+        trans_date_max_string = trans_date_max.strftime('%Y%m%d')
+        filename_suffix = filename_suffix + "_" + trans_date_min_string + "_" + trans_date_max_string
+        out_filename = os.path.join(in_folder, filename_suffix + ".csv")
+        
         with open(out_filename, mode='w', newline='', encoding='utf-8') as ynab_csv_file:
             ynab_writer = csv.writer(ynab_csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for line in ynab_csv:

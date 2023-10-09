@@ -23,7 +23,7 @@ def process_csv(in_filename):
 
     try:
         in_folder = os.path.dirname(in_filename)
-        with open(in_filename) as csv_file:
+        with open(in_filename, encoding='utf-8-sig') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
             header_line = 9999999   # large int

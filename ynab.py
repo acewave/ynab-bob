@@ -39,7 +39,8 @@ def process_csv(in_filename):
                         is_cc = True
                         filename_suffix = "YNAB_CC_" + row[1][-4:]
                     else:
-                        filename_suffix = "YNAB_" + row[0]
+                        account_number = row[0].replace("'", "0")   # fix for apostrophe in input file
+                        filename_suffix = "YNAB_" + account_number
 
                 if row[0] == "Reference No" or row[0] == "Transaction Date":
                     header_line = line_count
@@ -123,10 +124,10 @@ def process_csv_files():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', action='store_true', help='Run with interactive multiple file select option')
+    parser.add_argument('-i', action='store_true', help='Run with interactive multiple file select option')
     args = parser.parse_args()
 
-    if args.s:
+    if args.i:
         print("Interactive mode - user must select CSV files to process.")
         process_csv_files_select()
     else:
